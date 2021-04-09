@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:int-file="http://www.springframework.org/schema/integration/file"
+       xmlns:int-sftp="http://www.springframework.org/schema/integration/sftp"
+       xsi:schemaLocation="
+            http://www.springframework.org/schema/task
+            http://www.springframework.org/schema/task/spring-task-5.2.xsd
+            http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/integration/file
+            http://www.springframework.org/schema/integration/file/spring-integration-file-5.2.xsd
+            http://www.springframework.org/schema/integration
+            http://www.springframework.org/schema/integration/spring-integration-5.2.xsd
+            http://www.springframework.org/schema/integration/sftp
+            https://www.springframework.org/schema/integration/sftp/spring-integration-sftp.xsd">
+
+    <int:gateway
+            service-interface="ru.volkov.integration.ftp.FileWriterGateway"
+            default-request-channel="sftpChannel"/>
+
+    <bean id="ftpClientFactory" class="org.springframework.integration.sftp.session.DefaultSftpSessionFactory">
+        <property name="host" value="10.0.254.14"/>
+        <property name="port" value="2222"/>
+        <property name="user" value="user"/>
+        <property name="allowUnknownKeys" value="true"/>
+        <property name="password" value="0zsi0Ouo"/>
+    </bean>
+
+    <int-sftp:outbound-gateway
+            session-factory="ftpClientFactory"
+            command="get"
+            expression="payload"
+            request-channel="sftpChannel"
+            local-directory="src/test/write"
+            reply-channel="outboundChannel"/>
+    
+    <bean id="mp" class="ru.volkov.integration.ftp.MessagePrinter"/>
+    <int:service-activator ref="mp" method="print" input-channel="transformChannel"/>
+    <int-file:file-to-string-transformer input-channel="outboundChannel" output-channel="transformChannel"/>
+
+    <int:channel id="outboundChannel"/>
+    <int:channel id="sftpChannel"/>
+    <int:channel id="transformChannel"/>
+</beans>
